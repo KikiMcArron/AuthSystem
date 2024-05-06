@@ -1,8 +1,9 @@
 import pytest
 import hashlib
 from unittest.mock import MagicMock, patch
-from auth_system import User, Authenticator
-from exceptions import UsernameAlreadyExists, PasswordToShort, InvalidUsername, InvalidPassword
+from auth_system import User, Authenticator, Authorizer
+from exceptions import UsernameAlreadyExists, PasswordToShort, InvalidUsername, InvalidPassword, NotLoggedInError, \
+    NotPermittedError
 
 
 # Tests for User class
@@ -112,3 +113,64 @@ def test_user_not_logged_in(authenticator):
 
 def test_user_does_not_exist(authenticator):
     assert authenticator.is_logged_in("nonexistentuser") == False, "User should not be logged in"
+
+
+# Tests for Authorizer class
+@pytest.fixture
+def authorizer(authenticator):
+    return Authorizer(authenticator)
+
+
+def test_add_permission_success(authorizer):
+    authorizer.add_permission("edit")
+    assert "edit" in authorizer.permissions, "Permission should be added"
+
+
+def test_add_permission_exists(authorizer):
+    authorizer.add_permission("edit")
+    with pytest.raises(PermissionError):
+        authorizer.add_permission("edit")
+
+
+def test_permit_user_success(authorizer):
+    authorizer.add_permission("edit")
+    authorizer.permit_user("edit", "testuser")
+    assert "testuser" in authorizer.permissions["edit"], "User should have permission"
+
+
+def test_permit_user_no_permission(authorizer):
+    with pytest.raises(PermissionError):
+        authorizer.permit_user("edit", "testuser")
+
+
+def test_permit_user_invalid_user(authorizer):
+    authorizer.add_permission("edit")
+    with pytest.raises(InvalidUsername):
+        authorizer.permit_user("edit", "unknownuser")
+
+
+def test_check_permission_success(authorizer, authenticator):
+    authorizer.add_permission("edit")
+    authorizer.permit_user("edit", "testuser")
+    authenticator.login("testuser", "secure123")
+    assert authorizer.check_permission("edit", "testuser") == True, "User should have access"
+
+
+def test_check_permission_not_logged_in(authorizer, authenticator):
+    authorizer.add_permission("edit")
+    authorizer.permit_user("edit", "testuser")
+    with pytest.raises(NotLoggedInError):
+        authorizer.check_permission("edit", "testuser")
+
+
+def test_check_permission_no_permission(authorizer, authenticator):
+    authorizer.add_permission("edit")
+    authenticator.login("testuser", "secure123")
+    with pytest.raises(NotPermittedError):
+        authorizer.check_permission("edit", "testuser")
+
+
+def test_check_permission_no_exist_permission(authorizer, authenticator):
+    authenticator.login("testuser", "secure123")
+    with pytest.raises(PermissionError):
+        authorizer.check_permission("edit", "testuser")

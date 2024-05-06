@@ -19,3 +19,11 @@ class InvalidUsername(AuthException):
 
 class InvalidPassword(AuthException):
     pass
+
+
+class NotLoggedInError(AuthException):
+    pass
+
+
+class NotPermittedError(AuthException):
+    pass
