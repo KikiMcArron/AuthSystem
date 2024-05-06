@@ -1,6 +1,6 @@
 import pytest
 import hashlib
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 from auth_system import User, Authenticator
 from exceptions import UsernameAlreadyExists, PasswordToShort, InvalidUsername, InvalidPassword
 
@@ -17,7 +17,8 @@ def user():
 
 def test_encrypt_pw(monkeypatch):
     class MockSHA256:
-        def hexdigest(self):
+        @staticmethod
+        def hexdigest():
             return 'fakehash'
 
     monkeypatch.setattr(hashlib, 'sha256', lambda *args, **kwargs: MockSHA256())
@@ -81,13 +82,8 @@ def test_login_success(authenticator):
     mock_user = MagicMock(spec=User)
     mock_user.check_password.return_value = True
     mock_user.is_logged_in = False
-
-    # Replace the existing user with the mock
     authenticator.users['testuser'] = mock_user
-
     authenticator.login("testuser", "secure123")
-
-    # Directly check if is_logged_in was set to True
     assert mock_user.is_logged_in == True, "User should be logged in after correct login credentials"
 
 
@@ -103,3 +99,16 @@ def test_login_invalid_password(authenticator):
 
         with pytest.raises(InvalidPassword):
             authenticator.login("testuser", "wrongpassword")
+
+
+def test_user_logged_in(authenticator):
+    authenticator.login("testuser", "secure123")
+    assert authenticator.is_logged_in("testuser") == True, "User should be logged in"
+
+
+def test_user_not_logged_in(authenticator):
+    assert authenticator.is_logged_in("testuser") == False, "User should not be logged in"
+
+
+def test_user_does_not_exist(authenticator):
+    assert authenticator.is_logged_in("nonexistentuser") == False, "User should not be logged in"

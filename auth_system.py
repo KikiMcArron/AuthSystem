@@ -40,3 +40,11 @@ class Authenticator:
 
         user.is_logged_in = True
         return True
+
+    def is_logged_in(self, username):
+        if username in self.users:
+            return self.users[username].is_logged_in
+        return False
+
+
+authenticator = Authenticator()
