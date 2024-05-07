@@ -30,6 +30,11 @@ class Authenticator:
             raise PasswordToShort(username)
         self.users[username] = User(username, password)
 
+    def remove_user(self, username):
+        if username not in self.users:
+            raise InvalidUsername(username)
+        del self.users[username]
+
     def login(self, username, password):
         try:
             user = self.users[username]
@@ -83,7 +88,3 @@ class Authorizer:
                 raise NotPermittedError(username)
             else:
                 return True
-
-
-authenticator = Authenticator()
-authorizer = Authorizer(authenticator)
