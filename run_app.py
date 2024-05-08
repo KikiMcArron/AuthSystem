@@ -1,7 +1,7 @@
 from application import Application, AuthManager
 
 
-def main():
+def main() -> None:
     auth_manager = AuthManager()
     app = Application(auth_manager)
     app.run()
